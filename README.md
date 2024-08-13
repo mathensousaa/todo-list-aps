@@ -38,3 +38,18 @@ Certifique-se de ter o [Node.js](https://nodejs.org/) instalado em sua máquina.
    ```bash
    git clone https://github.com/seu-usuario/todo-list-aps.git
    ```
+
+2. **Navegue até o diretório do projeto:**:
+   ```bash
+   cd todo-list-aps
+   ```
+
+3. **Instale as dependências:**:
+   ```bash
+   npm install
+   ```
+
+4. **Inicie o servidor de desenvolvimento:**:
+   ```bash
+   npm run dev
+   ```
