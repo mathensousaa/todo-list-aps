@@ -1,35 +1,32 @@
 import { TarefaController } from "../controllers";
+import { ViewStrategy } from "./view-strategy";
 
-export class QuadroTarefasView {
-  private tarefaController: TarefaController;
+export class QuadroTarefasView implements ViewStrategy {
+  public colunaTarefasAFazer!: HTMLDivElement;
+  public colunaTarefasEmAndamento!: HTMLDivElement;
+  public colunaTarefasConcluidas!: HTMLDivElement;
+
   private colunas: NodeListOf<HTMLDivElement> | null = null;
 
-  constructor(tarefaController: TarefaController) {
-    this.tarefaController = tarefaController;
+  constructor(private tarefaController: TarefaController) {
+    this.inicializarElementos();
     this.colunas = document.querySelectorAll(".coluna");
-    this.configurarEventos();
+    this.adicionarEventos();
   }
 
-  private pegarNovaPosicao(
-    coluna: HTMLDivElement,
-    posicaoY: number
-  ): HTMLElement | null {
-    const tarefas = coluna.querySelectorAll(".card-tarefa:not(.arrastando)");
-    let resultado: HTMLElement | null = null;
-
-    tarefas.forEach((tarefa) => {
-      const caixa = tarefa.getBoundingClientRect();
-      const centroCaixaY = caixa.y + caixa.height / 2;
-
-      if (posicaoY >= centroCaixaY) {
-        resultado = tarefa as HTMLElement;
-      }
-    });
-
-    return resultado;
+  public inicializarElementos() {
+    this.colunaTarefasAFazer = document.getElementById(
+      "tarefas-a-fazer"
+    ) as HTMLDivElement;
+    this.colunaTarefasEmAndamento = document.getElementById(
+      "tarefas-em-andamento"
+    ) as HTMLDivElement;
+    this.colunaTarefasConcluidas = document.getElementById(
+      "tarefas-concluidas"
+    ) as HTMLDivElement;
   }
 
-  private configurarEventos(): void {
+  public adicionarEventos() {
     document.addEventListener("dragstart", (evento: DragEvent) => {
       if (evento.target instanceof HTMLElement) {
         evento.target.classList.add("arrastando");
@@ -55,6 +52,25 @@ export class QuadroTarefasView {
         }
       });
     });
+  }
+
+  private pegarNovaPosicao(
+    coluna: HTMLDivElement,
+    posicaoY: number
+  ): HTMLElement | null {
+    const tarefas = coluna.querySelectorAll(".card-tarefa:not(.arrastando)");
+    let resultado: HTMLElement | null = null;
+
+    tarefas.forEach((tarefa) => {
+      const caixa = tarefa.getBoundingClientRect();
+      const centroCaixaY = caixa.y + caixa.height / 2;
+
+      if (posicaoY >= centroCaixaY) {
+        resultado = tarefa as HTMLElement;
+      }
+    });
+
+    return resultado;
   }
 
   private moverTarefa(tarefaElement: HTMLElement): void {

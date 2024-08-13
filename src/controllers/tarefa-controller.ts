@@ -16,7 +16,7 @@ export class TarefaController {
     dataVencimento: string | null,
     status: string,
     categoria: number | null,
-    notificacao: boolean = false,
+    notificacao: boolean = true
   ): { resultado: string; titulo: string; mensagem?: string } {
     try {
       if (!titulo) {
@@ -154,8 +154,26 @@ export class TarefaController {
     this.tarefaRepository.atualizarTarefa(tarefa);
   }
 
+  public trocarStatusTarefa(idTarefa: number): void {
+    const tarefa = this.tarefaRepository.carregarTarefaPorId(idTarefa);
+
+    if (tarefa) {
+      if (tarefa.status === "A fazer" || tarefa.status === "Em andamento") {
+        tarefa.status = "Concluída";
+      } else {
+        tarefa.status = "A fazer";
+      }
+
+      this.tarefaRepository.atualizarTarefa(tarefa);
+    }
+  }
+
   obterTarefaPorId(id: number): Tarefa | undefined {
     return this.tarefaRepository.carregarTarefaPorId(id);
+  }
+
+  obterTarefas(): Tarefa[] | [] {
+    return this.tarefaRepository.carregarTarefas();
   }
 
   private obterProximoId(): number {

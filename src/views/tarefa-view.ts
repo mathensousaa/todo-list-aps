@@ -1,19 +1,21 @@
 import { CategoriaController, TarefaController } from "../controllers";
-import { Tarefa } from "../models";
-import { ViewStrategy } from "./strategies/view-strategy";
 import { CategoriaView } from "./categoria-view";
-import { TarefaRepository } from "../repositories/tarefa-repository";
+import { Tarefa } from "../models";
+import { ViewStrategy } from "./view-strategy";
 import { QuadroTarefasView } from "./quadro-tarefas-view";
-import { CategoriaRepository } from "../repositories";
-import { CategoriaRepository } from '../repositories/categoria-repository';
+import { GlobalView } from "./global-view";
+import {
+  converterDataParaTextoCorrido,
+  verificarDataMenorQueAtual,
+} from "../utils/data-utils";
 
 export class TarefaView implements ViewStrategy {
   //Criação de Tarefa
-  private formularioAdicionarTarefa: HTMLFormElement;
-  private campoDescricaoTarefa: HTMLInputElement;
-  private botoesAdicionarTarefaAFazer: NodeListOf<HTMLButtonElement> | null;
-  private botoesAdicionarTarefaEmAndamento: NodeListOf<HTMLButtonElement> | null;
-  private botoesAdicionarTarefaConcluida: NodeListOf<HTMLButtonElement> | null;
+  private formularioAdicionarTarefa!: HTMLFormElement;
+  private campoDescricaoTarefa!: HTMLInputElement;
+  private botoesAdicionarTarefaAFazer!: NodeListOf<HTMLButtonElement> | null;
+  private botoesAdicionarTarefaEmAndamento!: NodeListOf<HTMLButtonElement> | null;
+  private botoesAdicionarTarefaConcluida!: NodeListOf<HTMLButtonElement> | null;
 
   // Popover Tarefa
   private popoversTarefa: NodeListOf<HTMLElement> | null = null;
@@ -26,29 +28,32 @@ export class TarefaView implements ViewStrategy {
   private botoesExcluirTarefa: NodeListOf<HTMLButtonElement> | null = null;
 
   // Modal Editar Tarefa
-  private dialogEditarTarefa: HTMLDivElement;
-  private botaoAcaoEditarTarefa: HTMLButtonElement;
-  private botaoCancelarEditarTarefa: HTMLButtonElement;
+  private dialogEditarTarefa!: HTMLDivElement;
+  private botaoAcaoEditarTarefa!: HTMLButtonElement;
+  private botaoCancelarEditarTarefa!: HTMLButtonElement;
 
-  private formularioEditarTarefa: HTMLFormElement;
-  private campoEditarDescricaoTarefa: HTMLInputElement;
-  private campoSelecionarCategoriaTarefa: HTMLSelectElement;
-  private campoEditarDataTarefa: HTMLInputElement;
+  private formularioEditarTarefa!: HTMLFormElement;
+  private campoEditarDescricaoTarefa!: HTMLInputElement;
+  private campoEditarDataTarefa!: HTMLInputElement;
 
   // Modal Excluir Tarefa
-  private dialogExcluirTarefa: HTMLDivElement;
-  private botaoAcaoExcluirTarefa: HTMLButtonElement;
-  private botaoCancelarExcluirTarefa: HTMLButtonElement;
+  private dialogExcluirTarefa!: HTMLDivElement;
+  private botaoAcaoExcluirTarefa!: HTMLButtonElement;
+  private botaoCancelarExcluirTarefa!: HTMLButtonElement;
 
   constructor(
     private tarefaController: TarefaController,
-    private tarefaRepository: TarefaRepository,
     private categoriaController: CategoriaController,
-    private categoriaRepository: CategoriaRepository,
     private quadroTarefasView: QuadroTarefasView,
     private categoriaView: CategoriaView,
     private globalView: GlobalView
   ) {
+    this.inicializarElementos();
+    this.adicionarEventos();
+    this.exibirTarefas();
+  }
+
+  inicializarElementos(): void {
     this.formularioAdicionarTarefa = document.getElementById(
       "formulario-adicionar-tarefa"
     ) as HTMLFormElement;
@@ -80,9 +85,7 @@ export class TarefaView implements ViewStrategy {
     this.campoEditarDescricaoTarefa = document.getElementById(
       "campo-editar-descricao-tarefa"
     ) as HTMLInputElement;
-    this.campoSelecionarCategoriaTarefa = document.getElementById(
-      "campo-selecionar-categoria-tarefa"
-    ) as HTMLSelectElement;
+
     this.campoEditarDataTarefa = document.getElementById(
       "campo-editar-data-tarefa"
     ) as HTMLInputElement;
@@ -97,12 +100,23 @@ export class TarefaView implements ViewStrategy {
       "botao-acao-excluir-tarefa"
     ) as HTMLButtonElement;
 
-    this.exibirTarefas();
+    this.inicializarPopovers();
+    this.iniciarBotoesDefinirStatusConcluida();
+    this.iniciarBotoesOpcoesTarefa();
+  }
 
+  adicionarEventos(): void {
     this.formularioAdicionarTarefa?.addEventListener("submit", (evento) => {
       evento.preventDefault();
       const descricao = this.campoDescricaoTarefa.value;
-      const resposta = this.tarefaController.criarTarefa(descricao);
+      const resposta = this.tarefaController.criarTarefa(
+        descricao,
+        descricao,
+        null,
+        this.obterStatusDaTarefa(),
+        null,
+        true
+      );
       this.campoDescricaoTarefa.value = "";
       this.campoDescricaoTarefa.placeholder = "Adicionar Tarefa";
       this.globalView.exibirToast(
@@ -145,14 +159,17 @@ export class TarefaView implements ViewStrategy {
 
       const idTarefa = Number(this.dialogEditarTarefa.dataset.id);
       const descricao = this.campoEditarDescricaoTarefa.value;
-      const categoria = Number(this.campoSelecionarCategoriaTarefa.value);
-      const data = this.campoEditarDataTarefa.value;
+      const categoria = Number(
+        this.categoriaView.campoSelecionarCategoriaTarefa.value
+      );
+      const dataVencimento = this.campoEditarDataTarefa.value;
 
       const resposta = this.tarefaController.editarTarefa(
         idTarefa,
+        "",
         descricao,
         categoria,
-        data
+        dataVencimento
       );
       this.fecharDialogEditarTarefa();
       this.globalView.exibirToast(
@@ -163,6 +180,11 @@ export class TarefaView implements ViewStrategy {
       this.exibirTarefas();
       this.categoriaView.popoverCategoria.classList.add("hidden");
     });
+
+    this.adicionarEventosPopover();
+    this.AdicionarEventosBotaoDefinirStatusConcluida();
+    this.AdicionarEventosBotoesOpcoesTarefa();
+    this.AdicionarEventosBotoesAcaoDialog();
   }
 
   private inicializarPopovers(): void {
@@ -204,8 +226,24 @@ export class TarefaView implements ViewStrategy {
     }
   }
 
+  private obterStatusDaTarefa(): string {
+    const queryString = window.location.search;
+    const parametrosURL = new URLSearchParams(queryString);
+
+    const statusTarefa = parametrosURL.get("status");
+
+    switch (statusTarefa) {
+      case "1":
+        return "Em andamento";
+      case "2":
+        return "Concluída";
+      default:
+        return "A fazer";
+    }
+  }
+
   private exibirTarefas(): void {
-    const tarefas = this.tarefaRepository.carregarTarefas();
+    const tarefas = this.tarefaController.obterTarefas();
 
     this.quadroTarefasView.colunaTarefasAFazer!.innerHTML = "";
     this.quadroTarefasView.colunaTarefasEmAndamento!.innerHTML = "";
@@ -251,11 +289,11 @@ export class TarefaView implements ViewStrategy {
     cardTarefa.id = `tarefa-${tarefa.id}`;
     cardTarefa.setAttribute("draggable", "true");
 
-    const corCategoria = this.categoriaRepository
-      .carregarCategorias()
+    const corCategoria = this.categoriaController
+      .obterCategorias()
       .find((categoria) => categoria.id === Number(tarefa.categoria))?.cor;
-    const nomeCategoria = this.categoriaRepository
-      .carregarCategorias()
+    const nomeCategoria = this.categoriaController
+      .obterCategorias()
       .find((categoria) => categoria.id === Number(tarefa.categoria))?.nome;
 
     cardTarefa.classList.add(
@@ -264,7 +302,10 @@ export class TarefaView implements ViewStrategy {
 
     const descricaoTarefa = document.createElement("p");
     descricaoTarefa.classList.add("descricao-tarefa");
-    descricaoTarefa.innerText = tarefa.descricao;
+
+    if (tarefa.descricao) {
+      descricaoTarefa.innerText = tarefa.descricao;
+    }
 
     cardTarefa.innerHTML = `
           <!-- Botão -->
@@ -281,7 +322,7 @@ export class TarefaView implements ViewStrategy {
           <!-- Detalhes da Tarefa -->
           <div class="flex-1">
             <span class="text-sm">${tarefa.descricao}</span>
-            <div class="flex gap-1 ${!tarefa.data ? "hidden" : ""}">
+            <div class="flex gap-1 ${!tarefa.dataVencimento ? "hidden" : ""}">
               <!-- Ícone de calendário -->
               <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -362,10 +403,10 @@ export class TarefaView implements ViewStrategy {
               />
               </svg>
               <span class="text-xs ${
-                this.verificarDataMenorQueAtual(tarefa.dataVencimento)
+                verificarDataMenorQueAtual(tarefa.dataVencimento)
                   ? "text-red-500"
                   : "text-gray-500"
-              }">${this.converterDataParaTextoCorrido(tarefa.dataVencimento)}</span>
+              }">${converterDataParaTextoCorrido(tarefa.dataVencimento)}</span>
             </div>
           </div>
 
@@ -675,7 +716,11 @@ export class TarefaView implements ViewStrategy {
     const resposta = this.tarefaController.excluirTarefa(Number(idTarefa));
     this.exibirTarefas();
     this.fecharDialogExcluirTarefa();
-    this.globalView.exibirToast(resposta.resultado, resposta.titulo, resposta.mensagem);
+    this.globalView.exibirToast(
+      resposta.resultado,
+      resposta.titulo,
+      resposta.mensagem
+    );
   };
 
   private onBotaoCancelarExcluirTarefaClick = (): void => {
@@ -704,11 +749,13 @@ export class TarefaView implements ViewStrategy {
   };
 
   private exibirDialogEditarTarefa(idTarefa: number): void {
-    this.categoriaView.atualizarOpcoesCategoria(this.campoSelecionarCategoriaTarefa);
+    this.categoriaView.atualizarOpcoesCategoria(
+      this.categoriaView.campoSelecionarCategoriaTarefa
+    );
     this.dialogEditarTarefa?.classList.remove("hidden");
     this.dialogEditarTarefa.dataset.id = idTarefa.toString();
-    const tarefa = this.tarefaRepository
-      .carregarTarefas()
+    const tarefa = this.tarefaController
+      .obterTarefas()
       .find((tarefa) => tarefa.id === idTarefa);
 
     if (this.botaoAcaoEditarTarefa) {
@@ -717,12 +764,17 @@ export class TarefaView implements ViewStrategy {
     }
 
     if (tarefa) {
-      this.campoEditarDescricaoTarefa.value = tarefa.descricao;
+      if (tarefa.descricao) {
+        this.campoEditarDescricaoTarefa.value = tarefa.descricao;
+      }
+
       this.campoEditarDescricaoTarefa.focus();
 
       if (tarefa.categoria) {
         const opcoesCategoria =
-          this.campoSelecionarCategoriaTarefa?.querySelectorAll("option");
+          this.categoriaView.campoSelecionarCategoriaTarefa?.querySelectorAll(
+            "option"
+          );
         if (opcoesCategoria) {
           opcoesCategoria.forEach((opcao: HTMLOptionElement) => {
             if (opcao.value === tarefa.categoria?.toString()) {
