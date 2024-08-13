@@ -8,20 +8,14 @@ O sistema foi desenvolvido em TypeScript, utilizando o paradigma de Programaçã
 
 ## Design Patterns Utilizados
 
-1. **Strategy Pattern**:
+1. **MVC (Model-View-Controller)**:
+   - O sistema segue o padrão MVC, separando claramente a lógica de negócio (Model), a lógica de apresentação (View) e o controle da aplicação (Controller). Isso facilita a manutenção e a escalabilidade do sistema.
+     
+2. **Strategy Pattern**:
    - Utilizado para definir diferentes estratégias de persistência de dados (`SQLiteStrategy`, `LocalStorageStrategy`), permitindo que o sistema mude dinamicamente a forma como os dados são armazenados sem precisar alterar a lógica principal.
 
-2. **Factory Pattern**:
-   - Implementado para criar instâncias dos repositórios e serviços de maneira centralizada, facilitando a injeção de dependências e o gerenciamento das instâncias ao longo do sistema.
-
-3. **Singleton Pattern**:
-   - Algumas classes que lidam com recursos compartilhados, como os serviços de notificação e a conexão com o banco de dados, foram implementadas como Singletons para garantir que apenas uma instância dessas classes exista em todo o sistema.
-
-4. **MVC (Model-View-Controller)**:
-   - O sistema segue o padrão MVC, separando claramente a lógica de negócio (Model), a lógica de apresentação (View) e o controle da aplicação (Controller). Isso facilita a manutenção e a escalabilidade do sistema.
-
-5. **Observer Pattern**:
-   - Implementado para a comunicação entre componentes da interface do usuário, permitindo que as Views sejam atualizadas automaticamente quando os modelos de dados são modificados.
+3. **Repository Pattern**:
+   - Usado para abstrair a lógica de acesso a dados, oferecendo uma interface consistente para manipulação de dados em diferentes fontes, como bancos de dados SQLite ou armazenamento local (LocalStorage). Os repositórios (`CategoriaRepository`, `TarefaRepository`, `CorRepository`) atuam como intermediários entre os dados da aplicação e as camadas superiores, promovendo a separação de responsabilidades.
 
 ## Estrutura do Projeto
 
@@ -31,3 +25,16 @@ O sistema foi desenvolvido em TypeScript, utilizando o paradigma de Programaçã
 - **src/repositories**: Contém os repositórios responsáveis por persistir e recuperar dados, utilizando diferentes estratégias de persistência.
 - **src/services**: Contém os serviços que encapsulam funcionalidades auxiliares e regras de negócio específicas.
 - **src/strategies**: Contém as diferentes implementações de estratégias de persistência, como `SQLiteStrategy` e `LocalStorageStrategy`.
+
+## Como Rodar o Sistema Localmente
+
+### Pré-requisitos
+
+Certifique-se de ter o [Node.js](https://nodejs.org/) instalado em sua máquina.
+
+### Passos
+
+1. **Clone o repositório**:
+   ```bash
+   git clone https://github.com/seu-usuario/todo-list-aps.git
+   ```
